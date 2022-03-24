@@ -6,8 +6,7 @@ Using [uber-go/zap][zap] in all my project I found myself repeating a small amou
 - Stackdriver compatible
 - Heavy use of the context.Context
 
-
-## Usage:
+## Usage
 
 ```golang
 ctx := context.Background()

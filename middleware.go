@@ -65,11 +65,10 @@ func (w *wrapper) Write(p []byte) (n int, err error) {
 }
 
 func (w *wrapper) WriteHeader(code int) {
-	w.ResponseWriter.WriteHeader(code)
-	// Check after in case there's error handling in the wrapped ResponseWriter.
 	if w.wroteHeader {
 		return
 	}
+	w.ResponseWriter.WriteHeader(code)
 	w.status = code
 	w.wroteHeader = true
 }
