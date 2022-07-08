@@ -51,7 +51,9 @@ func Middleware(next http.Handler, logger *zap.Logger) http.Handler {
 }
 
 func IgnoreRequest(r *http.Request) {
-	atomic.StoreUint32(r.Context().Value(keyIgnoredToggle).(*uint32), 1)
+	if ignored, ok := r.Context().Value(keyIgnoredToggle).(*uint32); ok {
+		atomic.StoreUint32(ignored, 1)
+	}
 }
 
 type wrapper struct {
