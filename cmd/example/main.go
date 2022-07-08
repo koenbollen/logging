@@ -14,12 +14,18 @@ import (
 )
 
 func main() {
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
 	defer cancel()
 
 	logger := logging.New(ctx, "example", "api")
 	ctx = logging.WithLogger(ctx, logger)
 	logger.Info("init")
+	defer logger.Info("fin")
+
+	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		logging.IgnoreRequest(r)
+		w.WriteHeader(http.StatusOK)
+	})
 
 	http.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
 		logger := logging.GetLogger(r.Context())
@@ -40,7 +46,7 @@ func main() {
 		Handler: logging.Middleware(http.DefaultServeMux, logger),
 	}
 	go func() {
-		if err := server.ListenAndServe(); err != nil {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Fatal("failed to listen or serve", zap.Error(err))
 		}
 	}()

@@ -3,6 +3,7 @@ package logging
 import (
 	"context"
 	"os"
+	"runtime/debug"
 
 	"github.com/koenbollen/logging/internal"
 	"go.uber.org/zap"
@@ -55,7 +56,7 @@ func New(ctx context.Context, service, component string) *zap.Logger {
 	if component != "" {
 		logger = logger.With(zap.String("component", component))
 	}
-	if version, found := os.LookupEnv("VERSION"); found {
+	if version, found := getVersionFromEnvOrRuntime(); found {
 		logger = logger.With(zap.String("version", version))
 	}
 
@@ -64,4 +65,29 @@ func New(ctx context.Context, service, component string) *zap.Logger {
 		_ = logger.Sync()
 	}()
 	return logger
+}
+
+func getVersionFromEnvOrRuntime() (string, bool) {
+	if version, found := os.LookupEnv("VERSION"); found && version != "" {
+		return version, true
+	}
+	info, _ := debug.ReadBuildInfo()
+	var revision string
+	var modified bool
+	for _, v := range info.Settings {
+		switch v.Key {
+		case "vcs.revision":
+			revision = v.Value
+		case "vcs.modified":
+			modified = v.Value == "true"
+		}
+	}
+	if revision != "" {
+		version := revision
+		if modified {
+			version += "-modified"
+		}
+		return version, true
+	}
+	return "", false
 }

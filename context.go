@@ -10,6 +10,7 @@ type contextKeyLogging int
 
 const keyLogger = contextKeyLogging(0)
 const keyRequestID = contextKeyLogging(1)
+const keyIgnoredToggle = contextKeyLogging(2)
 
 // WithLogger will attach the given logger to a parent context.
 func WithLogger(parent context.Context, logger *zap.Logger) context.Context {

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync/atomic"
 
 	"go.uber.org/zap"
 )
@@ -18,15 +19,24 @@ import (
 // request served.
 func Middleware(next http.Handler, logger *zap.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requestID := "r" + strconv.FormatInt(rand.Int63(), 36)
-		l := logger.With(zap.String("rid", requestID))
 		ww := &wrapper{ResponseWriter: w}
-		r = r.WithContext(context.WithValue(r.Context(), keyLogger, l))
-		r = r.WithContext(context.WithValue(r.Context(), keyRequestID, requestID))
+		requestID := "r" + strconv.FormatInt(rand.Int63(), 36)
+		ignored := uint32(0)
+		l := logger.With(zap.String("rid", requestID))
+
+		ctx := r.Context()
+		ctx = context.WithValue(ctx, keyLogger, l)
+		ctx = context.WithValue(ctx, keyRequestID, requestID)
+		ctx = context.WithValue(ctx, keyIgnoredToggle, &ignored)
+		r = r.WithContext(ctx)
 		if r.Header.Get("X-Forwarded-For") != "" {
 			r.RemoteAddr = strings.TrimSpace(strings.Split(r.Header.Get("X-Forwarded-For"), ",")[0])
 		}
+
 		defer func() {
+			if atomic.LoadUint32(&ignored) != 0 {
+				return
+			}
 			logger.Info("served",
 				zap.String("rid", requestID),
 				zap.String("method", r.Method),
@@ -38,6 +48,10 @@ func Middleware(next http.Handler, logger *zap.Logger) http.Handler {
 
 		next.ServeHTTP(ww, r)
 	})
+}
+
+func IgnoreRequest(r *http.Request) {
+	atomic.StoreUint32(r.Context().Value(keyIgnoredToggle).(*uint32), 1)
 }
 
 type wrapper struct {
