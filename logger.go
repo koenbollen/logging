@@ -20,7 +20,7 @@ import (
 // default fields.
 //
 // The severity level filter is _info_, otherwise _debug_ when
-// ENV is "local" or DEBUG is not empty.
+// ENV is "local" or the env DEBUG is not empty.
 //
 // see: https://cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntry
 func New(ctx context.Context, service, component string) *zap.Logger {
@@ -47,7 +47,7 @@ func New(ctx context.Context, service, component string) *zap.Logger {
 		config.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
 	}
 
-	logger, err := config.Build()
+	logger, err := config.Build(zap.WithFatalHook(zapcore.WriteThenPanic))
 	if err != nil {
 		panic(err)
 	}
