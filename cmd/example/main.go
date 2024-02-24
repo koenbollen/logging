@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -51,6 +53,16 @@ func main() {
 	server := &http.Server{
 		Addr:    ":8080",
 		Handler: logging.Middleware(http.DefaultServeMux, logger),
+		BaseContext: func(net.Listener) context.Context {
+			return ctx
+		},
+
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  650 * time.Second,
+	}
+	if addr, ok := os.LookupEnv("ADDR"); !ok {
+		server.Addr = addr
 	}
 	go func() {
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
