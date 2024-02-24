@@ -5,16 +5,15 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/koenbollen/logging"
-	"go.uber.org/zap"
 )
 
 func main() {
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
 	logger := logging.New(ctx, "example", "api")
@@ -22,7 +21,7 @@ func main() {
 	logger.Info("init")
 	defer logger.Info("fin")
 
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		logging.IgnoreRequest(r)
 		w.WriteHeader(http.StatusOK)
 	})
@@ -31,12 +30,20 @@ func main() {
 		logger := logging.GetLogger(r.Context())
 
 		if r.URL.RawQuery == "error" {
-			logger.Error("error", zap.Error(io.ErrUnexpectedEOF))
+			logger.Error("error", "err", io.ErrUnexpectedEOF)
 			http.Error(w, "error", http.StatusInternalServerError)
+			if f, ok := w.(http.Flusher); ok {
+				f.Flush()
+			}
 			panic(http.ErrAbortHandler)
 		}
 
-		logger.Debug("test endpoint hit", zap.String("qs", r.URL.RawQuery))
+		if r.URL.RawQuery == "fatal" {
+			logger.Error("fatal", "err", io.ErrUnexpectedEOF)
+			panic(io.ErrUnexpectedEOF)
+		}
+
+		logger.Debug("test endpoint hit", "qs", r.URL.RawQuery)
 		w.WriteHeader(http.StatusCreated)
 		fmt.Fprintln(w, "Hello!")
 	})
@@ -47,16 +54,18 @@ func main() {
 	}
 	go func() {
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Fatal("failed to listen or serve", zap.Error(err))
+			logger.Error("failed to listen or serve", "err", err)
+			return
 		}
 	}()
-	logger.Info("listening", zap.String("addr", server.Addr))
+	logger.Info("listening", "addr", server.Addr)
 
 	<-ctx.Done()
 
 	ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	if err := server.Shutdown(ctx); err != nil {
-		logger.Fatal("failed to shutdown server", zap.Error(err))
+		logger.Error("failed to shutdown server", "err", err)
+		return
 	}
 }

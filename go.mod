@@ -1,10 +1,10 @@
 module github.com/koenbollen/logging
 
-go 1.18
-
-require go.uber.org/zap v1.24.0
+go 1.22
 
 require (
-	go.uber.org/atomic v1.11.0 // indirect
-	go.uber.org/multierr v1.11.0 // indirect
+	github.com/jussi-kalliokoski/slogdriver v1.0.0
+	github.com/lmittmann/tint v1.0.4
 )
+
+require github.com/jussi-kalliokoski/goldjson v1.0.0 // indirect

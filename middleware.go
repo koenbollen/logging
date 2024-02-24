@@ -3,26 +3,25 @@ package logging
 import (
 	"bufio"
 	"context"
+	"log/slog"
 	"math/rand"
 	"net"
 	"net/http"
 	"strconv"
 	"strings"
 	"sync/atomic"
-
-	"go.uber.org/zap"
 )
 
 // Middleware wraps the given next http.Handler. Requests made through this
 // middleware are annotated with the given logger (to the r.Context()) and
 // after the request has been service a _info_ logentry is triggered for the
 // request served.
-func Middleware(next http.Handler, logger *zap.Logger) http.Handler {
+func Middleware(next http.Handler, logger *slog.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ww := &wrapper{ResponseWriter: w}
 		requestID := "r" + strconv.FormatInt(rand.Int63(), 36)
 		ignored := uint32(0)
-		l := logger.With(zap.String("rid", requestID))
+		l := logger.With("rid", requestID)
 
 		ctx := r.Context()
 		ctx = context.WithValue(ctx, keyLogger, l)
@@ -38,11 +37,11 @@ func Middleware(next http.Handler, logger *zap.Logger) http.Handler {
 				return
 			}
 			logger.Info("served",
-				zap.String("rid", requestID),
-				zap.String("method", r.Method),
-				zap.String("path", r.URL.Path),
-				zap.String("remote", r.RemoteAddr),
-				zap.Int("status", ww.Status()),
+				"rid", requestID,
+				"method", r.Method,
+				"path", r.URL.Path,
+				"remote", r.RemoteAddr,
+				"status", ww.Status(),
 			)
 		}()
 

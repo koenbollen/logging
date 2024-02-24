@@ -2,8 +2,8 @@ package logging
 
 import (
 	"context"
-
-	"go.uber.org/zap"
+	"io"
+	"log/slog"
 )
 
 type contextKeyLogging int
@@ -12,8 +12,10 @@ const keyLogger = contextKeyLogging(0)
 const keyRequestID = contextKeyLogging(1)
 const keyIgnoredToggle = contextKeyLogging(2)
 
+var noop = slog.New(slog.NewTextHandler(io.Discard, nil))
+
 // WithLogger will attach the given logger to a parent context.
-func WithLogger(parent context.Context, logger *zap.Logger) context.Context {
+func WithLogger(parent context.Context, logger *slog.Logger) context.Context {
 	if parent == nil {
 		parent = context.Background()
 	}
@@ -24,14 +26,14 @@ func WithLogger(parent context.Context, logger *zap.Logger) context.Context {
 }
 
 // GetLogger will retrieve a logger from the given context.
-func GetLogger(ctx context.Context) *zap.Logger {
+func GetLogger(ctx context.Context) *slog.Logger {
 	if ctx == nil {
-		return zap.NewNop()
+		return noop
 	}
-	if logger, ok := ctx.Value(keyLogger).(*zap.Logger); ok {
+	if logger, ok := ctx.Value(keyLogger).(*slog.Logger); ok {
 		return logger
 	}
-	return zap.NewNop()
+	return noop
 }
 
 // GetRequestID will return the generated request id that the logging.Middleware

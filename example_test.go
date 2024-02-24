@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/koenbollen/logging"
-	"go.uber.org/zap"
 )
 
 func Example() {
@@ -15,7 +14,7 @@ func Example() {
 
 	ctx = logging.WithLogger(ctx, logger)
 	err := someOperation(ctx)
-	logger.Error("failed", zap.Error(err))
+	logger.Error("failed", "err", err)
 }
 
 func someOperation(ctx context.Context) error {
