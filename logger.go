@@ -42,6 +42,11 @@ func New(ctx context.Context, service, component string) *zap.Logger {
 		config.Development = env != "production"
 		config.EncoderConfig = internal.EncoderConfig
 	}
+	if env == "test" {
+		config.OutputPaths = []string{"stdout"}
+		config.ErrorOutputPaths = []string{"stdout"}
+		config.EncoderConfig.TimeKey = ""
+	}
 
 	if os.Getenv("DEBUG") != "" {
 		config.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
