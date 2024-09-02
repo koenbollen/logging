@@ -30,6 +30,7 @@ func main() {
 
 	http.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
 		logger := logging.GetLogger(r.Context())
+		logging.IncludeRequestQuery(r)
 
 		if r.URL.RawQuery == "error" {
 			logger.Error("error", "err", io.ErrUnexpectedEOF)
@@ -61,7 +62,7 @@ func main() {
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  650 * time.Second,
 	}
-	if addr, ok := os.LookupEnv("ADDR"); !ok {
+	if addr, ok := os.LookupEnv("ADDR"); ok {
 		server.Addr = addr
 	}
 	go func() {
